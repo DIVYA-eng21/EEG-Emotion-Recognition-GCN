@@ -236,15 +236,13 @@ Each EEG electrode is treated as a graph node, and the adjacency matrix defines 
 
 ## GCN Layer Equation
 
-\[
-H^{(l+1)} = \text{ReLU}(\hat{A}H^{(l)}W^{(l)})
-\]
+H^{(l+1)} ={ReLU}(hat{A}H^{(l)}W^{(l)}
 
 Where:
 
-- \(H^{(l)}\) → node feature matrix at layer \(l\)
-- \(\hat{A}\) → normalized adjacency matrix
-- \(W^{(l)}\) → learnable weight matrix
+- (H^{(l)}) → node feature matrix at layer \(l\)
+- (hat{A}) → normalized adjacency matrix
+- (W^{(l)}) → learnable weight matrix
 - ReLU → activation function
 
 ---
@@ -255,141 +253,22 @@ Where:
 
 The adjacency matrix aggregates information from neighboring electrodes:
 
-\[
 \hat{A}H^{(l)}
-\]
-
 This allows each electrode to receive information from connected brain regions.
-
 ---
 
 ### Step 2 — Feature Transformation
 
 The aggregated features are transformed using learnable weights:
-
-\[
-\hat{A}H^{(l)}W^{(l)}
-\]
-
+hat{A}H^{(l)}W^{(l)}
 The network learns meaningful brain representations during training.
 
 ---
 
 ### Step 3 — Non-linearity
 
-ReLU activation introduces non-linearity:
-
-\[
-\text{ReLU}(x)=\max(0,x)
-\]
-
+ReLU activation introduces non-linearity.
 This helps the network learn complex emotional patterns.
-
----
-
-# Model Architecture
-
-The network contains three graph convolution layers followed by fully connected classification layers.
-
----
-
-## Input Representation
-
-Each EEG window becomes a graph:
-
-\[
-X \in \mathbb{R}^{14 \times 9}
-\]
-
-Where:
-- 14 EEG electrodes (nodes)
-- 9 extracted features per node
-
----
-
-## GCN Layer 1
-
-Feature transformation:
-
-\[
-9 \rightarrow 64
-\]
-
-Input:
-- 9 features per node
-
-Output:
-- 64 learned graph features per node
-
----
-
-## GCN Layer 2
-
-Feature transformation:
-
-\[
-64 \rightarrow 64
-\]
-
-The network refines graph-level spatial representations.
-
----
-
-## GCN Layer 3
-
-Feature transformation:
-
-\[
-64 \rightarrow 128
-\]
-
-Final node embeddings are generated.
-
----
-
-# Graph Pooling
-
-After graph convolutions, node-level information is converted into a graph-level representation.
-
----
-
-## Mean Pooling
-
-Average representation across all nodes:
-
-\[
-h_{\text{mean}} = \frac{1}{N}\sum_{i=1}^{N} h_i
-\]
-
-Captures overall brain activity trends.
-
----
-
-## Max Pooling
-
-Maximum activation across nodes:
-
-\[
-h_{\text{max}} = \max(h_i)
-\]
-
-Captures strongest emotional activations.
-
----
-
-## Combined Graph Representation
-
-Mean and max pooled features are concatenated:
-
-\[
-H_{\text{pool}} = [h_{\text{mean}} \parallel h_{\text{max}}]
-\]
-
-Final pooled vector size:
-
-\[
-128 + 128 = 256
-\]
 
 ---
 

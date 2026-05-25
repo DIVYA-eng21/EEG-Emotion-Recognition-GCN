@@ -8,13 +8,13 @@ The project explores how brain signals from EEG electrodes can be represented as
 
 The two notebooks demonstrate:
 
-1. **Dynamic Correlation-based GCN**
-2. **Fixed Anatomical Adjacency GCN**
+1. **Dynamic Correlation-based GCN** EEG_Emotion_GCN
+2. **Fixed Anatomical Adjacency GCN** EEG_Emotion_Analysiss_SW
 
 Both approaches use:
 - EEG signal preprocessing
 - Frequency-domain feature extraction
-- Graph neural networks
+- Graph convolutional neural networks
 - Emotion classification using PyTorch
 
 ---
@@ -22,22 +22,14 @@ Both approaches use:
 # Repository Structure
 
 ```bash
-├── EEG_Emotion_GCN_DynamicAdj.ipynb
-├── EEG_Emotion_GCN_FixedAdj.ipynb
-├── training_curves.png
-├── electrode_graph.png
+├── EEG_Emotion_GCN.ipynb
+├── EEG_Emotion_Analysiss_SW.ipynb
 ├── README.md
-└── requirements.txt
 ```
 
 ---
 
-# Notebook 1 — Dynamic Correlation-based GCN
-
-## File
-```bash
-EEG_Emotion_GCN_DynamicAdj.ipynb
-```
+# Notebook 1 — EEG_Emotion_GCN
 
 ## Idea
 
@@ -54,17 +46,10 @@ The adjacency matrix changes for every EEG sample depending on brain activity.
 ## Dynamic Graph Construction
 
 Correlation between electrode signals:
-
-\[
 A_{ij} = corr(x_i, x_j)
-\]
 
 If correlation exceeds threshold:
-
-\[
-|A_{ij}| > \tau
-\]
-
+corr=0.5
 then an edge is created.
 
 This creates:
@@ -94,22 +79,14 @@ This creates:
 
 Approximate Accuracy:
 
-\[
 40\% - 41\%
-\]
 
 However, this higher accuracy is partially due to random window splitting, where windows from the same subjects appear in both train and test sets.
-
 This can cause information leakage.
 
 ---
 
-# Notebook 2 — Fixed Anatomical Adjacency GCN
-
-## File
-```bash
-EEG_Emotion_GCN_FixedAdj.ipynb
-```
+# Notebook 2 —EEG_Emotion_Analysiss_SW
 
 ## Idea
 
@@ -126,13 +103,11 @@ The graph structure is manually designed according to electrode placement on the
 
 Graph:
 
-\[
 G = (V,E)
-\]
 
 Where:
-- \(V\) = EEG electrodes
-- \(E\) = anatomical neighboring connections
+- V = EEG electrodes
+- E = anatomical neighboring connections
 
 Example:
 
@@ -150,14 +125,11 @@ FIXED_EDGES = [
 
 Normalized adjacency matrix:
 
-\[
-\hat{A} = D^{-1/2} A D^{-1/2}
-\]
+hat{A} = D^{-1/2} A D^{-1/2}
 
 Where:
-- \(A\) = adjacency matrix
-- \(D\) = degree matrix
-
+- A = adjacency matrix
+- D = degree matrix
 This stabilizes graph convolution.
 
 ---
@@ -210,14 +182,6 @@ Therefore:
 
 ---
 
-# Final Accuracy Comparison
-
-| Model | Graph Type | Split Type | Accuracy |
-|------|------|------|------|
-| Dynamic GCN | Correlation-based | Random Window Split | ~41% |
-| Fixed GCN | Anatomical Graph | Subject-wise Split | ~30% |
-
----
 
 # EEG Signal Processing
 
@@ -230,12 +194,8 @@ CHANNELS = [
 ]
 ```
 
-Total electrodes:
-\[
-14
-\]
+Total electrodes:14
 
----
 
 # Windowing
 
@@ -247,16 +207,7 @@ STEP_SIZE   = 128
 ```
 
 Sampling Frequency:
-
-\[
 f_s = 128Hz
-\]
-
-Window duration:
-
-\[
-\frac{256}{128} = 2 \text{ seconds}
-\]
 
 Each graph represents:
 - 2 seconds of EEG activity
@@ -270,174 +221,188 @@ For every electrode, 9 features are extracted.
 
 ---
 
-# Frequency Band Powers
 
-Using Welch’s Power Spectral Density:
 
-\[
-PSD(f)
-\]
 
-Band power:
+- 14 nodes
+- 9 features per node
+# Graph Convolutional Network (GCN)
 
-\[
-P_{band} = \int_{f_l}^{f_h} PSD(f)\,df
-\]
+The model uses Graph Convolutional Networks to learn spatial relationships between EEG electrodes.
+
+Each EEG electrode is treated as a graph node, and the adjacency matrix defines how electrodes exchange information with neighboring electrodes.
 
 ---
 
-# EEG Frequency Bands
+## GCN Layer Equation
 
-| Band | Frequency |
-|------|------|
-| Delta | 0.5–4 Hz |
-| Theta | 4–8 Hz |
-| Alpha | 8–13 Hz |
-| Beta | 13–30 Hz |
-| Gamma | 30–50 Hz |
+\[
+H^{(l+1)} = \text{ReLU}(\hat{A}H^{(l)}W^{(l)})
+\]
+
+Where:
+
+- \(H^{(l)}\) → node feature matrix at layer \(l\)
+- \(\hat{A}\) → normalized adjacency matrix
+- \(W^{(l)}\) → learnable weight matrix
+- ReLU → activation function
 
 ---
 
-# Statistical Features
+## What Happens Inside a GCN Layer
 
-Additional features:
+### Step 1 — Neighbor Aggregation
 
-## Mean
+The adjacency matrix aggregates information from neighboring electrodes:
+
 \[
-\mu = \frac{1}{N}\sum x_i
+\hat{A}H^{(l)}
 \]
 
-## Standard Deviation
-\[
-\sigma = \sqrt{\frac{1}{N}\sum(x_i-\mu)^2}
-\]
-
-## Range
-\[
-Range = x_{max} - x_{min}
-\]
-
-## Mean Absolute Difference
-\[
-MAD = \frac{1}{N-1}\sum |x_{i+1}-x_i|
-\]
+This allows each electrode to receive information from connected brain regions.
 
 ---
 
-# Node Feature Matrix
+### Step 2 — Feature Transformation
 
-For every graph:
+The aggregated features are transformed using learnable weights:
+
+\[
+\hat{A}H^{(l)}W^{(l)}
+\]
+
+The network learns meaningful brain representations during training.
+
+---
+
+### Step 3 — Non-linearity
+
+ReLU activation introduces non-linearity:
+
+\[
+\text{ReLU}(x)=\max(0,x)
+\]
+
+This helps the network learn complex emotional patterns.
+
+---
+
+# Model Architecture
+
+The network contains three graph convolution layers followed by fully connected classification layers.
+
+---
+
+## Input Representation
+
+Each EEG window becomes a graph:
 
 \[
 X \in \mathbb{R}^{14 \times 9}
 \]
 
 Where:
-- 14 nodes
-- 9 features per node
+- 14 EEG electrodes (nodes)
+- 9 extracted features per node
 
 ---
 
-# Graph Convolutional Network
+## GCN Layer 1
 
-## GCN Equation
+Feature transformation:
 
-\[
-H^{(l+1)} = ReLU(\hat{A}H^{(l)}W^{(l)})
-\]
-
-Where:
-- \(H^{(l)}\) = node features
-- \(\hat{A}\) = normalized adjacency matrix
-- \(W^{(l)}\) = learnable weights
-
----
-
-# Model Architecture
-
-## GCN Layers
-
-### Layer 1
 \[
 9 \rightarrow 64
 \]
 
-### Layer 2
+Input:
+- 9 features per node
+
+Output:
+- 64 learned graph features per node
+
+---
+
+## GCN Layer 2
+
+Feature transformation:
+
 \[
 64 \rightarrow 64
 \]
 
-### Layer 3
+The network refines graph-level spatial representations.
+
+---
+
+## GCN Layer 3
+
+Feature transformation:
+
 \[
 64 \rightarrow 128
 \]
 
+Final node embeddings are generated.
+
 ---
 
-# Pooling
+# Graph Pooling
+
+After graph convolutions, node-level information is converted into a graph-level representation.
+
+---
 
 ## Mean Pooling
 
+Average representation across all nodes:
+
 \[
-h_{mean} = \frac{1}{N}\sum h_i
+h_{\text{mean}} = \frac{1}{N}\sum_{i=1}^{N} h_i
 \]
+
+Captures overall brain activity trends.
+
+---
 
 ## Max Pooling
 
+Maximum activation across nodes:
+
 \[
-h_{max} = \max(h_i)
+h_{\text{max}} = \max(h_i)
 \]
 
-Combined representation:
+Captures strongest emotional activations.
+
+---
+
+## Combined Graph Representation
+
+Mean and max pooled features are concatenated:
 
 \[
-H_{pool} = [h_{mean} || h_{max}]
+H_{\text{pool}} = [h_{\text{mean}} \parallel h_{\text{max}}]
 \]
 
-Final pooled dimension:
+Final pooled vector size:
 
 \[
-256
+128 + 128 = 256
 \]
 
 ---
 
 # Classification Head
 
-Fully connected layers:
+The pooled graph representation is passed through fully connected layers.
 
-\[
-256 \rightarrow 128 \rightarrow 64 \rightarrow 4
-\]
-
-Output:
-- 4 emotion logits
-
----
-
-# Loss Function
-
-Cross Entropy Loss:
-
-\[
-L = -\sum y_i \log(\hat{y_i})
-\]
-
----
-
-# Optimizer
-
-Adam Optimizer:
-
-```python
-Adam(model.parameters(), lr=0.001)
-```
-
-Weight decay:
-
-\[
-10^{-4}
-\]
+Final output:
+- 4 emotion logits corresponding to:
+  - Boring
+  - Calm
+  - Horror
+  - Funny
 
 ---
 
@@ -448,71 +413,28 @@ Weight decay:
 - NumPy
 - Pandas
 - SciPy
-- Scikit-learn
 - Matplotlib
+- Scikit-learn
 
 ---
 
-# Important Scientific Observation
+# Scientific Observation
 
-EEG emotion recognition is extremely difficult because:
+EEG emotion recognition is a highly difficult problem because:
+
 - EEG signals are noisy
 - emotions overlap neurologically
-- different subjects have different brain patterns
-- low-cost EEG devices have limited precision
+- brain patterns differ across subjects
 
 Therefore:
-- subject-wise evaluation is much harder
+- subject independent testing is significantly harder
 - lower accuracy is expected
-- realistic evaluation is more important than inflated accuracy
-
----
-
-# Future Improvements
-
-Possible future work:
-- Graph Attention Networks (GAT)
-- Temporal GNNs
-- Transformer-based EEG modeling
-- Dynamic temporal adjacency learning
-- Subject adaptation techniques
-- Functional connectivity analysis
-
----
-
-# How to Run
-
-## Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Run Notebook
-
-Open either notebook:
-
-```bash
-EEG_Emotion_GCN_DynamicAdj.ipynb
-```
-
-or
-
-```bash
-EEG_Emotion_GCN_FixedAdj.ipynb
-```
-
-using:
-- Google Colab
-- Jupyter Notebook
 
 ---
 
 # Dataset Download
 
-Dataset automatically downloads using Kaggle API.
+The dataset is downloaded automatically using the Kaggle API.
 
 You must upload:
 
@@ -520,13 +442,12 @@ You must upload:
 kaggle.json
 ```
 
-from your Kaggle account.
+Download it from:
 
-Path:
 Kaggle → Account → Create New API Token
 
 ---
 
-# Author
 
-Graph Neural Network based EEG Emotion Recognition project implemented using PyTorch and the GAMEEMO dataset.
+---
+

@@ -253,14 +253,16 @@ Where:
 
 The adjacency matrix aggregates information from neighboring electrodes:
 
-\hat{A}H^{(l)}
+Single GCN layer:
+        H_out = ReLU( A_norm @ H_in @ W )
+    A_norm aggregates neighbor features,
+    W transforms them — both learned end-to-end.
 This allows each electrode to receive information from connected brain regions.
 ---
 
 ### Step 2 — Feature Transformation
 
-The aggregated features are transformed using learnable weights:
-hat{A}H^{(l)}W^{(l)}
+The aggregated features are transformed using learnable weights.
 The network learns meaningful brain representations during training.
 
 ---
